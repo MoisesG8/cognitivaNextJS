@@ -1,7 +1,7 @@
 .tictactoepage {
-    background-image: url('https://cdn.pixabay.com/photo/2015/12/01/15/43/black-1072366_1280.jpg'); /* Asegúrate de tener esta imagen en la carpeta */
-    background-size: cover;
-    background-position: center;
+  background-image: url('https://cdn.pixabay.com/photo/2018/03/13/22/53/puzzle-3223941_1280.jpg'); 
+  background-size: cover;
+  background-position: center;
     height: 100vh;
     color: white;
     display: flex;

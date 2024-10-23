@@ -12,6 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
   const [acceso, setAcceso] = useState(false);
   const [user, setUser] = useState(false);
+  const [datosJuego, setDatosJuego] = useState(null);
   
   useEffect(() => {
     //setCookie("auth","eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",1)
@@ -41,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <AuthContextV2.Provider value={{ acceso, setAcceso, user, setUser }} >
+        <AuthContextV2.Provider value={{ acceso, setAcceso, user, setUser,datosJuego,setDatosJuego }} >
           {
             children
           }
