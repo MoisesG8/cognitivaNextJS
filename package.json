@@ -13,6 +13,7 @@
     "next": "14.2.13",
     "react": "^18",
     "react-dom": "^18",
+    "react-idle-timer": "^5.7.2",
     "sweetalert2": "^11.14.4"
   },
   "devDependencies": {

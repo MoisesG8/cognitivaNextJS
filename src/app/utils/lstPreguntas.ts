@@ -8,7 +8,7 @@ export const lstPreguntas = [
     "pregunta": "Selecciona el antónimo de 'feliz'",
     "opciones": ["triste", "alegre", "contento", "satisfecho"],
     "respuestaCorrecta": "triste"
-  },
+  },/*
   {
     "pregunta": "Selecciona el sinónimo de 'inteligente'",
     "opciones": ["bruto", "sabio", "tonto", "necio"],
@@ -103,7 +103,7 @@ export const lstPreguntas = [
     "pregunta": "Selecciona el sinónimo de 'delicioso'",
     "opciones": ["soso", "sabroso", "insípido", "aburrido"],
     "respuestaCorrecta": "sabroso"
-  }
+  }*/
 ]
 
 export const lstSeries = [
@@ -116,7 +116,7 @@ export const lstSeries = [
     "pregunta": "¿Cuál es el siguiente número en la serie:\n5, 10, 15, 20, ...?",
     "opciones": ["22", "25", "30", "35"],
     "respuestaCorrecta": "25"
-  },
+  }/*,
   {
     "pregunta": "¿Cuál es el siguiente número en la serie:\n1, 1, 2, 3, 5, ...?",
     "opciones": ["6", "7", "8", "9"],
@@ -156,5 +156,5 @@ export const lstSeries = [
     "pregunta": "¿Cuál es el siguiente número en la serie:\n2, 3, 5, 7, ...?",
     "opciones": ["9", "10", "11", "13"],
     "respuestaCorrecta": "11"
-  }
+  }*/
 ]

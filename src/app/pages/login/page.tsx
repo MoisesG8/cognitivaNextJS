@@ -10,6 +10,8 @@ import Swal from 'sweetalert2';
 import { myFetch, setCookie } from '@/app/services/funcionesService';
 import { AuthContextV2 } from '@/context/AuthContextV2';
 
+import { IdleTimer } from 'react-idle-timer';
+
 export default function Login() {
   /*Contexto*/
   const { acceso, setAcceso, setUser } = useContext(AuthContextV2);
@@ -66,16 +68,16 @@ export default function Login() {
       <div className={styles.loginBox}>
         <h1>Estimule sus habilidades cognitivas</h1>
         <br />
-        
-          <div className={styles.inputGroup}>
-            <label htmlFor="email">Correo Electrónico</label>
-            <input type="email" id="email" name="email" required  value={email} onChange={(e) => setEmail(e.target.value)}/>
-          </div>
-          <div className={styles.inputGroup}>
-            <label htmlFor="password">Contraseña</label>
-            <input type="password" id="password" name="password" required value={password} onChange={(e) => setPassword(e.target.value)}/>
-          </div>
-          {
+
+        <div className={styles.inputGroup}>
+          <label htmlFor="email">Correo Electrónico</label>
+          <input type="email" id="email" name="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className={styles.inputGroup}>
+          <label htmlFor="password">Contraseña</label>
+          <input type="password" id="password" name="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+        </div>
+        {
           cargando &&
           <div role="status">
             <svg aria-hidden="true" class="inline w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-pink-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,12 +87,12 @@ export default function Login() {
             <span className="sr-only">Loading...</span>
           </div>
         }
-        <br />          
-          <button className={styles.loginButton} onClick={() => { iniciarSesion() }}>Iniciar sesión</button>
-     
+        <br />
+        <button className={styles.loginButton} onClick={() => { iniciarSesion() }}>Iniciar sesión</button>
+
         <p className={styles.registerPrompt}>
           ¿No tienes cuenta?{' '}
-          <button className={styles.registerButton}  onClick={() => { irARegistro() }}>
+          <button className={styles.registerButton} onClick={() => { irARegistro() }}>
             Regístrate aquí
           </button>
         </p>

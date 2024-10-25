@@ -2,7 +2,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { lstSeries } from '@/app/utils/lstPreguntas';
 import { AuthContextV2 } from '@/context/AuthContextV2';
+import { calcularDiferenciaEnSegundos, getCookie, myFetch } from '@/app/services/funcionesService';
+import { useRouter } from 'next/navigation';
 
+import { utilidades } from '@/app/utils/utilidades';
+import Swal from 'sweetalert2';
 interface Pregunta {
   pregunta: string;
   opciones: string[];
@@ -10,7 +14,7 @@ interface Pregunta {
 }
 
 const series: React.FC = () => {
-
+  const router = useRouter();
   /*Contexto*/
   const { user, datosJuego, setDatosJuego } = useContext(AuthContextV2);
 
@@ -20,6 +24,11 @@ const series: React.FC = () => {
   const [resultado, setResultado] = useState<string | null>(null);
   const [tiempoRestante, setTiempoRestante] = useState<number>(10);
   const [juegoIniciado, setJuegoIniciado] = useState<boolean>(false); // Estado para controlar el inicio del juego
+
+  let tiempoXPregunta = 5
+
+  const [tiempoInicio, setTiempoInicio] = useState<any>(new Date());
+  const [puntaje, setPuntaje] = useState<any>(0);
 
   const mezclarPreguntas = (array: Pregunta[]) => {
     for (let i = array.length - 1; i > 0; i--) {
@@ -47,6 +56,7 @@ const series: React.FC = () => {
     setRespuestaSeleccionada(respuesta);
     if (respuesta === preguntas[indice].respuestaCorrecta) {
       setResultado("¡Correcto!");
+      setPuntaje(puntaje + 1)
     } else {
       setResultado("Incorrecto. La respuesta correcta era: " + preguntas[indice].respuestaCorrecta);
     }
@@ -65,13 +75,59 @@ const series: React.FC = () => {
     setTiempoRestante(10);
     setRespuestaSeleccionada(null);
     setResultado(null);
+    setTiempoInicio(new Date())
+  };
+
+  const guardarPuntaje = async (puntuacion, timpo, fecha) => {
+    const galletaUser = getCookie('user')
+    let id = 0
+    if (galletaUser != null) {
+      const User = JSON.parse(galletaUser)
+      id = User.id
+    }
+    let objetoPeticion = {
+      "idUsuario": id,
+      "idActividad": datosJuego?.id,
+      "puntuacion": puntuacion,
+      "tiempoTotal": timpo,
+      "fechaRealizacion": fecha // Ejemplo de formato ISO 8601
+    }
+
+    const respuesta = await myFetch(utilidades.rutaApi + 'api/v1/registrarResultado', "POST", objetoPeticion)
+    console.log(respuesta)
+    if (respuesta) {
+      if (respuesta?.estado == "exito") {
+        Swal.fire({
+          icon: 'success',
+          title: 'Registro puntaje',
+          text: 'Puntaje registrado exitosamente.',
+          confirmButtonColor: '#6b4226',
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Registro puntaje',
+          text: 'Error al registrar la partida.',
+          confirmButtonColor: '#db320e',
+        });
+      }
+    }
+    router.push(`/pages/dashboard`);
+
   };
 
   if (indice >= preguntas.length) {
+    let tiempoSeg = calcularDiferenciaEnSegundos(tiempoInicio, new Date())
+
     return (<div className='contenedor'>
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
         <h5 className='nombreJuego'>¡Juego terminado!</h5>
+        <h5 className='nombreJuego'>Tu puntaje fue: {puntaje} en {tiempoSeg} seg. / {preguntas.length * tiempoXPregunta} seg.</h5>
+        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <button onClick={() => { guardarPuntaje(puntaje, tiempoSeg, new Date()) }}>Finalizar</button>
+        </div>
       </div>
+
     </div >)
   }
 

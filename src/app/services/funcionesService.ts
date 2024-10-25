@@ -77,3 +77,14 @@ export const myFetchGET = (ruta: string) => {
 
     })
 }
+
+
+export const calcularDiferenciaEnSegundos=(fechaInicial, fechaFinal)=> {
+    // Obtenemos la diferencia en milisegundos
+    const diferenciaEnMilisegundos = fechaFinal.getTime() - fechaInicial.getTime();
+  
+    // Convertimos la diferencia a segundos
+    const diferenciaEnSegundos = Math.floor(diferenciaEnMilisegundos / 1000);
+  
+    return diferenciaEnSegundos;
+  }

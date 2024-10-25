@@ -146,6 +146,9 @@ button:hover {
 }
 
 .tablero {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   display: grid;
   grid-template-columns: repeat(3, 100px);
   gap: 5px;

@@ -13,6 +13,7 @@ const Dashboard = () => {
   /*Contexto*/
   const { user, setAcceso,datosJuego,setDatosJuego } = useContext(AuthContextV2);
   const [planificaciones, setPlanificaciones] = useState<any[]>([]);
+
   const [lstJuegos, setLstJuegos] = useState<any[]>([]);
 
   const router = useRouter();
@@ -51,6 +52,7 @@ const Dashboard = () => {
 
 
   const jugar = (item) => {
+    console.log(item)
     if (item.tipo === "1") {
       setDatosJuego(item)
       router.push(`/pages/games/sinonimosantonimos`);
