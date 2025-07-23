@@ -1,14 +1,17 @@
-"use client"; 
+"use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import style from './totito.module.css';
+import { actualizarPuntos } from '@/lib/api';
 
 const TicTacToe = () => {
-  const [board, setBoard] = useState<string[]>(Array(9).fill(null)); 
-  const [isXNext, setIsXNext] = useState<boolean>(true); 
-  const [score, setScore] = useState<number>(0); 
-  const [level, setLevel] = useState<number>(1); 
-  const [winner, setWinner] = useState<string | null>(null); 
+  const [board, setBoard] = useState<string[]>(Array(9).fill(null));
+  const [isXNext, setIsXNext] = useState<boolean>(true);
+  const [score, setScore] = useState<number>(0);
+  const [level, setLevel] = useState<number>(1);
+  const [winner, setWinner] = useState<string | null>(null);
+
+  const [pointsSent, setPointsSent] = useState(false);
 
   const calculateWinner = (squares: string[]): string | null => {
     const lines = [
@@ -30,7 +33,7 @@ const TicTacToe = () => {
     return null;
   };
 
-  const handleClick = (index: number) => { 
+  const handleClick = (index: number) => {
     if (board[index] || winner) return;
 
     const newBoard = board.slice();
@@ -52,7 +55,18 @@ const TicTacToe = () => {
     setBoard(Array(9).fill(null));
     setIsXNext(true);
     setWinner(null);
+    setPointsSent(false);
   };
+
+  useEffect(() => {
+    if (winner && !pointsSent) {
+      const pts = winner === "X" ? 10 : 5;
+      actualizarPuntos(pts)
+        .then(() => console.log("Puntos enviados"))
+        .catch((e) => console.error(e))
+        .finally(() => setPointsSent(true));
+    }
+  }, [winner, pointsSent]);
 
   return (
     <div className={style.tictactoepage}>
