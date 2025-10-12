@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./login.module.css";
+import EstadoAnimoModal from "../components/estadoDeAnimo/estadoAnimoModal";
 
 export default function Login() {
   const router = useRouter();
@@ -10,6 +11,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [usuarioId, setUsuarioId] = useState<number | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +47,7 @@ export default function Login() {
         "cognitiva_user",
         JSON.stringify(data.usuarioLoginResponse)
       );
-
+      setUsuarioId(data.usuarioLoginResponse.id); 
       const startRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/startSession`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -58,13 +61,18 @@ export default function Login() {
       }
       const { sesionId } = await startRes.json();
       localStorage.setItem("cognitiva_session", String(sesionId));
-
-      router.push("/dashboard"); // o la ruta de tu panel
+      setMostrarModal(true);
+      //router.push("/dashboard"); // o la ruta de tu panel
     } catch (err) {
       console.error(err);
       setError("No se pudo conectar al servidor");
       setLoading(false);
     }
+  };
+
+  const handleCloseModal = () => {
+    setMostrarModal(false);
+    router.push("/dashboard");
   };
 
   return (
@@ -117,6 +125,13 @@ export default function Login() {
           </button>
         </p>
       </div>
+      {/* Aquí renderizamos el modal si corresponde */}
+      {mostrarModal && usuarioId && (
+        <EstadoAnimoModal
+          usuarioId={usuarioId}
+          onClose={handleCloseModal}
+        />
+      )}
     </div>
   );
 }
