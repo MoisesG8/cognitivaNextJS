@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import style from "./dashboard.module.css";
 
@@ -13,69 +13,89 @@ type Actividad = {
   ruta: string;
 };
 
+type Notificacion = {
+  id: number;
+  titulo: string;
+  mensaje: string;
+  fecha: string;     // ISO string
+  leida: boolean;
+};
+
+type Clima = {
+  tempC: number;
+  icon?: string;     // opcional, por si devuelves un código/icono
+  ciudad?: string;
+};
+
 export default function DashboardPage() {
   const router = useRouter();
-
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string|null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // 1️⃣ Protegemos la ruta y cargamos actividades
   useEffect(() => {
+    let mounted = true;
     const token = localStorage.getItem("cognitiva_token");
     if (!token) {
       router.replace("/login");
       return;
     }
 
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/listarActividades`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/listarActividades`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
       .then((res) => {
         if (!res.ok) throw new Error("Error al cargar actividades");
         return res.json();
       })
-      .then((data: Actividad[]) => setActividades(data))
+      .then((data: Actividad[]) => {
+        if (mounted) setActividades(data);
+      })
       .catch((e) => {
         console.error(e);
-        setError("No se pudo cargar las actividades");
+        if (mounted) setError("No se pudo cargar las actividades");
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [router]);
 
-  // 2️⃣ Lectura de usuario para el saludo
   const userString =
-    typeof window !== "undefined"
-      ? localStorage.getItem("cognitiva_user")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("cognitiva_user") : null;
   const user = userString ? JSON.parse(userString) : null;
 
-  // 3️⃣ Cerrar sesión
-   const handleLogout = async () => {
-    localStorage.removeItem("cognitiva_token");
-    localStorage.removeItem("cognitiva_user");
+  const handleLogout = async () => {
+    const token = localStorage.getItem("cognitiva_token");
     const sesionId = localStorage.getItem("cognitiva_session");
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/${sesionId}/endSession`, { method: 'PUT' });
-    localStorage.removeItem("cognitiva_session");
-    router.replace("/login");
+    try {
+      if (sesionId) {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/${sesionId}/endSession`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token ?? ""}` }
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      localStorage.removeItem("cognitiva_token");
+      localStorage.removeItem("cognitiva_user");
+      localStorage.removeItem("cognitiva_session");
+      router.replace("/login");
+    }
   };
 
-  if (loading) {
-    return <div className={style.dashboardpage}>Cargando...</div>;
-  }
-
-  if (error) {
-    return <div className={style.dashboardpage}>{error}</div>;
-  }
+  if (loading) return <div className={style.dashboardpage}>Cargando...</div>;
+  if (error) return <div className={style.dashboardpage}>{error}</div>;
 
   return (
     <div className={style.dashboardpage}>
-      <div className={style.dashboardmenu}>
-        <div className={style.header}>
-          <h2>Bienvenido, {user?.nombre ?? "Usuario"}</h2>
-          <button className={style.logoutButton} onClick={handleLogout}>
-            Cerrar sesión
-          </button>
-        </div>
+      <TopBar nombre={user?.nombre ?? "Usuario"} onLogout={handleLogout} />
 
+      <div className={style.dashboardmenu}>
         <p>Selecciona un juego para comenzar:</p>
         <div className={style.buttoncontainer}>
           {actividades.map((act) => (
@@ -89,6 +109,180 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TopBar({ nombre, onLogout }: { nombre: string; onLogout: () => void }) {
+  return (
+    <header className={style.topbar}>
+      <div className={style.topbarLeft}>
+        <h2 className={style.welcome}>Bienvenido, {nombre}</h2>
+      </div>
+      <div className={style.topbarRight}>
+        <ClockWidget />
+        <WeatherWidget />
+        <NotificationsBell />
+        <button className={style.logoutButton} onClick={onLogout}>Cerrar sesión</button>
+      </div>
+    </header>
+  );
+}
+
+function ClockWidget() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return <div className={style.clock}>{now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>;
+}
+
+function WeatherWidget() {
+  const [clima, setClima] = useState<Clima | null>(null);
+   useEffect(() => {
+    let mounted = true;
+
+    const obtenerClima = async () => {
+      try {
+        // Coordenadas aproximadas de Guatemala
+        const latitude = 14.6349;
+        const longitude = -90.5069;
+
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        const weather = data.current_weather;
+        const clima: Clima = {
+          tempC: weather.temperature,
+          icon: obtenerIconoPorCodigo(weather.weathercode),
+          ciudad: 'Guatemala',
+        };
+
+        if (mounted) setClima(clima);
+      } catch (e) {
+        console.error('Error al obtener el clima', e);
+      }
+    };
+
+    obtenerClima();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  return (
+    <div className={style.weather} title={clima?.ciudad ?? ""}>
+      {clima ? (
+        <span className={style.weatherRow}>
+          {clima.icon && <img src={clima.icon} alt="Icono del clima" className={style.weatherIcon} />}
+          {Math.round(clima.tempC)}°C
+        </span>
+      ) : (
+        "Clima: —"
+      )}
+    </div>
+  );
+}
+
+function obtenerIconoPorCodigo(codigo: number): string {
+  // Aquí puedes usar imágenes propias o URLs externas
+  if ([0].includes(codigo)) return 'https://openweathermap.org/img/wn/01d.png'; // Soleado
+  if ([1, 2, 3].includes(codigo)) return 'https://openweathermap.org/img/wn/02d.png'; // Parcialmente nublado
+  if ([45, 48].includes(codigo)) return 'https://openweathermap.org/img/wn/50d.png'; // Neblina
+  if ([51, 53, 55, 56, 57].includes(codigo)) return 'https://openweathermap.org/img/wn/09d.png'; // Lluvia ligera
+  if ([61, 63, 65, 66, 67].includes(codigo)) return 'https://openweathermap.org/img/wn/10d.png'; // Lluvia moderada/fuerte
+  if ([71, 73, 75, 77].includes(codigo)) return 'https://openweathermap.org/img/wn/13d.png'; // Nieve
+  if ([80, 81, 82].includes(codigo)) return 'https://openweathermap.org/img/wn/11d.png'; // Tormenta
+  return 'https://openweathermap.org/img/wn/03d.png'; // Clima indefinido
+}
+
+function NotificationsBell() {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<Notificacion[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const token = localStorage.getItem("cognitiva_token");
+
+    const load = () => {
+      setLoading(true);
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones?tipo=consejos`, {
+        headers: { Authorization: `Bearer ${token ?? ""}` }
+      })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data: Notificacion[]) => {
+          if (mounted) setItems(data);
+        })
+        .finally(() => {
+          if (mounted) setLoading(false);
+        });
+    };
+
+    load();
+    const t = setInterval(load, 60000);
+    return () => {
+      mounted = false;
+      clearInterval(t);
+    };
+  }, []);
+
+  const unread = useMemo(() => items.filter((n) => !n.leida).length, [items]);
+
+  const markAllAsRead = async () => {
+    const token = localStorage.getItem("cognitiva_token");
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones/marcar-leidas`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token ?? ""}` }
+      });
+      setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className={style.bellWrapper}>
+      <button
+        className={style.bell}
+        onClick={() => {
+          setOpen((o) => !o);
+          if (!open && unread > 0) markAllAsRead().catch(() => {});
+        }}
+      >
+        🔔
+        {unread > 0 && <span className={style.badge}>{unread}</span>}
+      </button>
+
+      {open && (
+        <div className={style.dropdown}>
+          <div className={style.dropdownHeader}>
+            <strong className={style.bellTitle}>Consejos</strong>
+            {loading && <span className={style.loadingDot}>•</span>}
+          </div>
+          {items.length === 0 ? (
+            <div className={style.empty}>Sin notificaciones</div>
+          ) : (
+            <ul className={style.list}>
+              {items.map((n) => (
+                <li key={n.id} className={style.item}>
+                  <div className={style.itemTitle}>{n.titulo}</div>
+                  <div className={style.itemMsg}>{n.mensaje}</div>
+                  <div className={style.itemMeta}>{new Date(n.fecha).toLocaleString()}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -65,3 +65,177 @@
   background-color: #2e7d32;
   transform: scale(1.05);
 }
+
+/* Topbar */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #ffffff;
+  color: #1f2937;
+  /* texto oscuro */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.welcome {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Widgets */
+.clock,
+.weather {
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+
+  background: #d6b10a;
+  /* gray-100 */
+  color: #1f2937;
+  /* texto oscuro */
+  border: 1px solid #e2e8f0;
+  /* gray-300 */
+}
+
+.weatherRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.weatherIcon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Campana */
+.bellWrapper {
+  position: relative;
+}
+
+.bell {
+  position: relative;
+  border-radius: 999px;
+  padding: 6px 10px;
+  cursor: pointer;
+  background: #f1f5f9;
+  /* gray-100 */
+  color: #1165da;
+  /* texto oscuro */
+  border: 1px solid #e2e8f0;
+  /* gray-300 */
+}
+
+.bellTitle {
+  color: floralwhite;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  /* red-500 */
+  color: white;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.dropdown {
+  position: absolute;
+  right: 0;
+  margin-top: 8px;
+  width: 320px;
+  max-height: 360px;
+  overflow: auto;
+  background: #0b1220;
+  border: 1px solid #1f2937;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
+.dropdownHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid #ffffff;
+}
+
+.loadingDot {
+  color: #22c55e;
+}
+
+.empty {
+  padding: 16px;
+  color: #ffffff;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+}
+
+.item {
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.item+.item {
+  margin-top: 6px;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.itemTitle {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.itemMsg {
+  color: #cbd5e1;
+  margin-bottom: 4px;
+}
+
+.itemMeta {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* Botones existentes */
+.logoutButton {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  background: #dc2626;
+}

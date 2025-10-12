@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import styles from "./pares.module.css";
 import { actualizarPuntos } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 type Card = {
   id: number;
@@ -12,30 +13,68 @@ type Card = {
   label: string;
 };
 
+type Dificultad = "facil" | "dificil";
+
 export default function ParesPage() {
+  const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
   const [firstPick, setFirstPick] = useState<Card | null>(null);
   const [secondPick, setSecondPick] = useState<Card | null>(null);
   const [lockBoard, setLockBoard] = useState(false);
   const [moves, setMoves] = useState(0);
-
+  const [dificultad, setDificultad] = useState<Dificultad | null>(null);
   const [pointsSent, setPointsSent] = useState(false);
 
-  // Inicializa y baraja las cartas
-  useEffect(() => {
-    const labels = ["🐶", "🐱", "🦊", "🐸", "🐵", "🦁"];
+  const allLabels = ["🐶", "🐱", "🦊", "🐸", "🐵", "🦁", "🐰", "🐼", "🦄", "🐯", "🐨", "🐮"];
+
+  const iniciarJuego = (nivel: Dificultad) => {
+    const token = localStorage.getItem("cognitiva_token");
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+
+    setDificultad(nivel);
+
+    const cantidadPares = nivel === "facil" ? 6 : 12;
+    const labels = allLabels.slice(0, cantidadPares);
     let deck: Card[] = [];
+
     labels.forEach((lbl, i) => {
       deck.push({ id: i * 2, pairId: i, flipped: false, matched: false, label: lbl });
       deck.push({ id: i * 2 + 1, pairId: i, flipped: false, matched: false, label: lbl });
     });
+
     deck = deck
       .map((c) => ({ ...c, id: Math.random() }))
       .sort(() => Math.random() - 0.5);
-    setCards(deck);
-  }, []);
 
-  // Lógica de comparación
+    setCards(deck);
+    setFirstPick(null);
+    setSecondPick(null);
+    setLockBoard(false);
+    setMoves(0);
+    setPointsSent(false);
+  };
+
+  const resetPicks = () => {
+    setFirstPick(null);
+    setSecondPick(null);
+    setLockBoard(false);
+  };
+
+  const handleClick = (card: Card) => {
+    if (lockBoard || card.flipped || card.matched) return;
+    setCards((curr) =>
+      curr.map((c) => (c.id === card.id ? { ...c, flipped: true } : c))
+    );
+    if (!firstPick) {
+      setFirstPick({ ...card, flipped: true });
+    } else {
+      setSecondPick({ ...card, flipped: true });
+    }
+  };
+
   useEffect(() => {
     if (firstPick && secondPick) {
       setLockBoard(true);
@@ -62,31 +101,11 @@ export default function ParesPage() {
     }
   }, [firstPick, secondPick]);
 
-  const resetPicks = () => {
-    setFirstPick(null);
-    setSecondPick(null);
-    setLockBoard(false);
-  };
+  const completed = cards.length > 0 && cards.every((c) => c.matched);
 
-  const handleClick = (card: Card) => {
-    if (lockBoard || card.flipped || card.matched) return;
-    setCards((curr) =>
-      curr.map((c) => (c.id === card.id ? { ...c, flipped: true } : c))
-    );
-    if (!firstPick) {
-      setFirstPick({ ...card, flipped: true });
-    } else {
-      setSecondPick({ ...card, flipped: true });
-    }
-  };
-
-  const completed = cards.every((c) => c.matched);
-
-  // Enviar puntos al terminar (una sola vez)
   useEffect(() => {
     if (completed && !pointsSent) {
-      // Define tu regla de puntaje
-      const puntos = Math.max(10, 100 - moves * 2); // ejemplo
+      const puntos = Math.max(10, 150 - moves * 3); // más difícil, menos puntos por muchos movimientos
       actualizarPuntos(puntos)
         .then(() => console.log("Puntos actualizados"))
         .catch((e) => console.error(e))
@@ -94,30 +113,25 @@ export default function ParesPage() {
     }
   }, [completed, pointsSent, moves]);
 
-
   const resetGame = () => {
-    // rearmar mazo
-    const labels = ["🐶", "🐱", "🦊", "🐸", "🐵", "🦁"];
-    let deck: Card[] = [];
-    labels.forEach((lbl, i) => {
-      deck.push({ id: i * 2, pairId: i, flipped: false, matched: false, label: lbl });
-      deck.push({ id: i * 2 + 1, pairId: i, flipped: false, matched: false, label: lbl });
-    });
-    deck = deck
-      .map((c) => ({ ...c, id: Math.random() }))
-      .sort(() => Math.random() - 0.5);
-
-    setCards(deck);
-    setFirstPick(null);
-    setSecondPick(null);
-    setLockBoard(false);
-    setMoves(0);
-    setPointsSent(false);
+    if (dificultad) iniciarJuego(dificultad);
   };
+
+  if (!dificultad) {
+    return (
+      <div className={styles.container}>
+        <h1 className={styles.title}>Selecciona nivel de dificultad</h1>
+        <div className={styles.menu}>
+          <button onClick={() => iniciarJuego("facil")} className={styles.resetBtn}>Fácil</button>
+          <button onClick={() => iniciarJuego("dificil")} className={styles.resetBtn}>Difícil</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Juego de Pares</h1>
+      <h1 className={styles.title}>Juego de Pares ({dificultad})</h1>
       <p className={styles.moves}>Movimientos: {moves}</p>
       <div className={styles.grid}>
         {cards.map((card) => (
@@ -136,7 +150,7 @@ export default function ParesPage() {
       {completed && (
         <div className={styles.message}>
           ¡Felicidades, terminaste en {moves} movimientos!
-           <button onClick={resetGame} className={styles.resetBtn}>
+          <button onClick={resetGame} className={styles.resetBtn}>
             Jugar otra vez
           </button>
         </div>

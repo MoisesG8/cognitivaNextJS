@@ -60,3 +60,10 @@
     background-color: #388e3c; 
   }
   
+  .difficultySelect {
+  background-color: #333;
+  color: white;
+  border: 1px solid #ccc;
+  padding: 5px;
+  border-radius: 4px;
+}

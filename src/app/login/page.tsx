@@ -59,7 +59,6 @@ export default function Login() {
       const { sesionId } = await startRes.json();
       localStorage.setItem("cognitiva_session", String(sesionId));
 
-      
       router.push("/dashboard"); // o la ruta de tu panel
     } catch (err) {
       console.error(err);
