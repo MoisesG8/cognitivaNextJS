@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import style from "./dashboard.module.css";
+import { descargarReporteEstadoAnimo, enviarReporte } from "@/lib/api";
 
 type Actividad = {
   id: number;
@@ -97,6 +98,15 @@ export default function DashboardPage() {
 
       <div className={style.dashboardmenu}>
         <p>Selecciona un juego para comenzar:</p>
+        <div className={style.reportButtons}>
+    <button className={style.reportButton} onClick={handleDescargar}>
+      📥 Descargar reporte
+    </button>
+    <button className={style.reportButtonSecondary} onClick={handleEnviar}>
+      📧 Enviar reporte
+    </button>
+  </div>
+
         <div className={style.buttoncontainer}>
           {actividades.map((act) => (
             <button
@@ -137,6 +147,40 @@ function ClockWidget() {
   }, []);
   return <div className={style.clock}>{now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>;
 }
+
+const handleDescargar = async () => {
+  try {
+    const blob = await descargarReporteEstadoAnimo();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `reporte_estado_animo.pdf`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error al descargar el reporte:", error);
+    alert("Ocurrió un error al descargar el reporte.");
+  }
+};
+
+
+const handleEnviar = async () => {
+  try {
+
+    const res = await enviarReporte();
+    if (res.status) {
+      alert("Reporte enviado exitosamente a tu correo.");
+    } else {
+      alert("No se pudo enviar el reporte.");
+    }
+
+  }catch (error) {
+    console.error("Error al enviar el reporte:", error);
+    alert("Ocurrió un error al enviar el reporte.");
+  }
+
+};
+
 
 function WeatherWidget() {
   const [clima, setClima] = useState<Clima | null>(null);
@@ -214,6 +258,7 @@ function NotificationsBell() {
 
     const load = () => {
       setLoading(true);
+      //Falta crear este endpoint
       fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones?tipo=consejos`, {
         headers: { Authorization: `Bearer ${token ?? ""}` }
       })
@@ -239,6 +284,7 @@ function NotificationsBell() {
   const markAllAsRead = async () => {
     const token = localStorage.getItem("cognitiva_token");
     try {
+      //Falta crear este endpoint
       await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones/marcar-leidas`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token ?? ""}` }

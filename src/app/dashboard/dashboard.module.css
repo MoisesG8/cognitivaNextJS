@@ -239,3 +239,38 @@
 .logoutButton:hover {
   background: #dc2626;
 }
+
+.reportButtons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.reportButton {
+  background-color: #1976d2;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.reportButton:hover {
+  background-color: #115293;
+}
+
+.reportButtonSecondary {
+  background-color: #f57c00;
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.reportButtonSecondary:hover {
+  background-color: #bb4d00;
+}
