@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import style from './totito.module.css';
-import { actualizarPuntos } from '@/lib/api';
-import { useRouter } from "next/navigation";
+import { actualizarPuntos, registrarResultado } from '@/lib/api';
+import { useRouter, useSearchParams } from "next/navigation";
 
-const TicTacToe = () => {
+const TicTacToeGame = () => {
+  const searchParams = useSearchParams();
+  const idActividad = parseInt(searchParams.get("idActividad") || "0");
   const router = useRouter();
   const [board, setBoard] = useState<string[]>(Array(9).fill(""));
   const [winner, setWinner] = useState<string | null>(null);
@@ -13,6 +15,22 @@ const TicTacToe = () => {
   const [level, setLevel] = useState<number>(1);
   const [lockBoard, setLockBoard] = useState(false);
   const [pointsSent, setPointsSent] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+
+  // Verificar autenticación solo al montar
+  useEffect(() => {
+    const token = localStorage.getItem("cognitiva_token");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [router]);
+
+  // Iniciar timer cuando se reinicia el juego
+  useEffect(() => {
+    if (!winner) {
+      setStartTime(new Date());
+    }
+  }, [winner]);
 
   const calculateWinner = (squares: string[]): string | null => {
     const lines = [
@@ -74,24 +92,42 @@ const TicTacToe = () => {
     setPointsSent(false);
   };
 
+  // Registrar puntos cuando hay ganador
   useEffect(() => {
-    const token = localStorage.getItem("cognitiva_token");
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
-
-    if (winner && !pointsSent) {
-      if (winner === "X") {
+    const registrarPuntos = async () => {
+      if (winner && !pointsSent && winner === "X") {
+        const endTime = new Date();
+        let tiempoTotalSegundos = 0;
+        if (startTime) {
+          tiempoTotalSegundos = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+        }
+        
         setScore(prev => prev + 10);
         if ((score + 10) % 50 === 0) setLevel(prev => prev + 1);
-        actualizarPuntos(10)
-          .then(() => console.log("Puntos enviados"))
-          .catch((e) => console.error(e));
+        
+        const payload = {
+          idActividad,
+          puntuacion: 10,
+          tiempoTotal: tiempoTotalSegundos,
+          fechaRealizacion: new Date(),
+        };
+        
+        try {
+          await registrarResultado(payload);
+          console.log("Resultado registrado");
+          await actualizarPuntos(10);
+          console.log("Puntos enviados");
+        } catch (e) {
+          console.error("Error al registrar:", e);
+        }
+        
+        setPointsSent(true);
       }
-      setPointsSent(true);
-    }
-  }, [winner, pointsSent, router, score]);
+    };
+
+    registrarPuntos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winner, pointsSent]);
 
   return (
     <div className={style.tictactoepage}>
@@ -118,4 +154,11 @@ const TicTacToe = () => {
   );
 };
 
-export default TicTacToe;
+// Componente principal exportado con Suspense
+export default function TicTacToe() {
+  return (
+    <Suspense fallback={<div className={style.tictactoepage}>Cargando juego...</div>}>
+      <TicTacToeGame />
+    </Suspense>
+  );
+}

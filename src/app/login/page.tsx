@@ -40,9 +40,7 @@ export default function Login() {
       }
 
       const data = await res.json();
-      // data.token y data.usuarioLoginResponse
       localStorage.setItem("cognitiva_token", data.token);
-      // puedes guardar también el usuario:
       localStorage.setItem(
         "cognitiva_user",
         JSON.stringify(data.usuarioLoginResponse)
@@ -62,7 +60,7 @@ export default function Login() {
       const { sesionId } = await startRes.json();
       localStorage.setItem("cognitiva_session", String(sesionId));
       setMostrarModal(true);
-      //router.push("/dashboard"); // o la ruta de tu panel
+
     } catch (err) {
       console.error(err);
       setError("No se pudo conectar al servidor");
@@ -125,7 +123,7 @@ export default function Login() {
           </button>
         </p>
       </div>
-      {/* Aquí renderizamos el modal si corresponde */}
+      {/* Aquí renderizamos el modal*/}
       {mostrarModal && usuarioId && (
         <EstadoAnimoModal
           usuarioId={usuarioId}

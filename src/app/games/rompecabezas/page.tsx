@@ -1,15 +1,18 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import styles from "./rompecabezas.module.css";
-import { actualizarPuntos } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { actualizarPuntos, registrarResultado } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Tile = { id: number; img: string; correctIndex: number };
 
 const SIZES = [3, 4, 5];
 
-export default function RompecabezasPage() {
+function RompecabezasGame() {
+  const searchParams = useSearchParams();
+  const idActividad = parseInt(searchParams.get("idActividad") || "0");
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [grid, setGrid] = useState(3);
@@ -34,14 +37,14 @@ export default function RompecabezasPage() {
     img: HTMLImageElement | ImageBitmap,
     size: number
   ) => {
-    const iw = (img as any).width;
-    const ih = (img as any).height;
+    const iw = img.width;
+    const ih = img.height;
     const scale = Math.max(size / iw, size / ih);
     const sw = iw * scale;
     const sh = ih * scale;
     const dx = (size - sw) / 2;
     const dy = (size - sh) / 2;
-    ctx.drawImage(img as any, dx, dy, sw, sh);
+    ctx.drawImage(img, dx, dy, sw, sh);
   };
 
   const createTiles = async (imageFile: File, n: number) => {
@@ -109,12 +112,14 @@ export default function RompecabezasPage() {
   };
 
   useEffect(() => {
-     const token = localStorage.getItem("cognitiva_token");
+    setStartTime(new Date());
+    const token = localStorage.getItem("cognitiva_token");
     if (!token) {
       router.replace("/login");
       return;
     }
     if (file) prepare();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file, grid]);
 
   const swap = (a: number, b: number) => {
@@ -123,9 +128,21 @@ export default function RompecabezasPage() {
     setOrder(next);
     setMoves((m) => m + 1);
     if (next.every((i, pos) => i === pos)) {
+      const endTime = new Date();
+      let tiempoTotalSegundos = 0;
+      if (startTime) {
+        tiempoTotalSegundos = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      }
       setFinished(true);
       const piezas = grid * grid;
-      const puntos = piezas * 5; // o: piezas*5 + bonus - penalización por movimientos
+      const puntos = piezas * 5;
+      const payload = {
+        idActividad,
+        puntuacion: puntos,
+        tiempoTotal: tiempoTotalSegundos,
+        fechaRealizacion: new Date(),
+      };
+      registrarResultado(payload).catch(console.error);
       actualizarPuntos(puntos).catch(console.error);
     }
   };
@@ -196,7 +213,10 @@ export default function RompecabezasPage() {
               aria-label={`Pieza ${tileIndex + 1}`}
               disabled={!t}
             >
-              {t && <img src={t.img} alt="" draggable={false} />}
+              {t && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={t.img} alt="" draggable={false} />
+              )}
             </button>
           );
         })}
@@ -212,5 +232,14 @@ export default function RompecabezasPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Componente principal con Suspense
+export default function RompecabezasPage() {
+  return (
+    <Suspense fallback={<div className={styles.wrapper}>Cargando juego...</div>}>
+      <RompecabezasGame />
+    </Suspense>
   );
 }

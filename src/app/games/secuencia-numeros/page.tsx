@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import styles from "./secuencia-numeros.module.css";
-import { actualizarPuntos } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { actualizarPuntos, registrarResultado } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
 
-type Props = {};
-export default function SecuenciaPage({}: Props) {
+function SecuenciaGame() {
+  const searchParams = useSearchParams();
+  const idActividad = parseInt(searchParams.get("idActividad") || "0");
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const router = useRouter();
   const SEQ_LENGTH = 16;
   const [gridNumbers, setGridNumbers] = useState<number[]>([]);
@@ -39,20 +41,34 @@ export default function SecuenciaPage({}: Props) {
   };
 
   useEffect(() => {
+    setStartTime(new Date());
+    console.log("Iniciando juego con id:", idActividad);
     const token = localStorage.getItem("cognitiva_token");
     if (!token) {
       router.replace("/login");
       return;
     }
     restartGame();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
- 
   const finishGame = async (correct: boolean) => {
     setFinished(true);
     const earned = correct ? (currentIndex + (correct && currentIndex < SEQ_LENGTH - 1 ? 1 : 0)) * 5 : currentIndex * 5;
     setPoints(earned);
+    const endTime = new Date();
+    let tiempoTotalSegundos = 0;
+    if (startTime) {
+      tiempoTotalSegundos = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    }
+    const payload = {
+      idActividad: idActividad,
+      puntuacion: earned,
+      tiempoTotal: tiempoTotalSegundos,
+      fechaRealizacion: new Date()
+    };
     try {
+      await registrarResultado(payload);
       await actualizarPuntos(earned);
     } catch (e) {
       console.error("Error al actualizar puntos:", e);
@@ -65,7 +81,6 @@ export default function SecuenciaPage({}: Props) {
     if (num === expected) {
       const nextIdx = currentIndex + 1;
       if (nextIdx === sortedNumbers.length) {
-
         setCurrentIndex(nextIdx - 1);
         finishGame(true);
       } else {
@@ -120,5 +135,14 @@ export default function SecuenciaPage({}: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+// Componente principal con Suspense
+export default function SecuenciaPage() {
+  return (
+    <Suspense fallback={<div className={styles.container}>Cargando juego...</div>}>
+      <SecuenciaGame />
+    </Suspense>
   );
 }

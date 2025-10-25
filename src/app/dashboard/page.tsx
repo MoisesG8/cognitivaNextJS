@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image"; // ← Importa Image
 import style from "./dashboard.module.css";
 import { descargarReporteEstadoAnimo, enviarReporte } from "@/lib/api";
 
@@ -14,17 +15,17 @@ type Actividad = {
   ruta: string;
 };
 
-type Notificacion = {
+interface Notificacion {
   id: number;
   titulo: string;
   mensaje: string;
-  fecha: string;     // ISO string
-  leida: boolean;
-};
+  fecha: string;
+  leida?: boolean;
+}
 
 type Clima = {
   tempC: number;
-  icon?: string;     // opcional, por si devuelves un código/icono
+  icon?: string;
   ciudad?: string;
 };
 
@@ -33,6 +34,8 @@ export default function DashboardPage() {
   const [actividades, setActividades] = useState<Actividad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showPDF, setShowPDF] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -89,6 +92,38 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDescargar = async () => {
+    try {
+      const blob = await descargarReporteEstadoAnimo();
+      const url = window.URL.createObjectURL(blob);
+
+      setPdfUrl(url);
+      setShowPDF(true);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `reporte_estado_animo.pdf`;
+      link.click();
+    } catch (error) {
+      console.error("Error al descargar el reporte:", error);
+      alert("Ocurrió un error al descargar el reporte.");
+    }
+  };
+
+  const handleEnviar = async () => {
+    try {
+      const res = await enviarReporte();
+      if (res.status) {
+        alert("Reporte enviado exitosamente a tu correo.");
+      } else {
+        alert("No se pudo enviar el reporte.");
+      }
+    } catch (error) {
+      console.error("Error al enviar el reporte:", error);
+      alert("Ocurrió un error al enviar el reporte.");
+    }
+  };
+
   if (loading) return <div className={style.dashboardpage}>Cargando...</div>;
   if (error) return <div className={style.dashboardpage}>{error}</div>;
 
@@ -99,26 +134,45 @@ export default function DashboardPage() {
       <div className={style.dashboardmenu}>
         <p>Selecciona un juego para comenzar:</p>
         <div className={style.reportButtons}>
-    <button className={style.reportButton} onClick={handleDescargar}>
-      📥 Descargar reporte
-    </button>
-    <button className={style.reportButtonSecondary} onClick={handleEnviar}>
-      📧 Enviar reporte
-    </button>
-  </div>
+          <button className={style.reportButton} onClick={handleDescargar}>
+            📥 Descargar reporte
+          </button>
+          <button className={style.reportButtonSecondary} onClick={handleEnviar}>
+            📧 Enviar reporte
+          </button>
+          <button className={style.reportButton} onClick={() => router.push('/registrar-familia')}>
+            😊 Registrar familiar
+          </button>
+          <button className={style.reportButton} onClick={() => router.push('/mostrar-familiares')}>
+            😊 Ver familiares
+          </button>
+        </div>
 
         <div className={style.buttoncontainer}>
           {actividades.map((act) => (
             <button
               key={act.id}
               className={style.gameButton}
-              onClick={() => router.push(`/${act.ruta}`)}
+              onClick={() => router.push(`/${act.ruta}?idActividad=${act.id}`)}
             >
               {act.nombre}
             </button>
           ))}
         </div>
       </div>
+
+      {showPDF && pdfUrl && (
+        <div className={style.modalOverlay}>
+          <div className={style.modalContent}>
+            <button className={style.closeButton} onClick={() => setShowPDF(false)}>✖</button>
+            <iframe
+              src={pdfUrl}
+              className={style.pdfViewer}
+              title="Visor PDF"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -148,48 +202,13 @@ function ClockWidget() {
   return <div className={style.clock}>{now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>;
 }
 
-const handleDescargar = async () => {
-  try {
-    const blob = await descargarReporteEstadoAnimo();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `reporte_estado_animo.pdf`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error al descargar el reporte:", error);
-    alert("Ocurrió un error al descargar el reporte.");
-  }
-};
-
-
-const handleEnviar = async () => {
-  try {
-
-    const res = await enviarReporte();
-    if (res.status) {
-      alert("Reporte enviado exitosamente a tu correo.");
-    } else {
-      alert("No se pudo enviar el reporte.");
-    }
-
-  }catch (error) {
-    console.error("Error al enviar el reporte:", error);
-    alert("Ocurrió un error al enviar el reporte.");
-  }
-
-};
-
-
 function WeatherWidget() {
   const [clima, setClima] = useState<Clima | null>(null);
-   useEffect(() => {
+  useEffect(() => {
     let mounted = true;
 
     const obtenerClima = async () => {
       try {
-        // Coordenadas aproximadas de Guatemala
         const latitude = 14.6349;
         const longitude = -90.5069;
 
@@ -225,7 +244,16 @@ function WeatherWidget() {
     <div className={style.weather} title={clima?.ciudad ?? ""}>
       {clima ? (
         <span className={style.weatherRow}>
-          {clima.icon && <img src={clima.icon} alt="Icono del clima" className={style.weatherIcon} />}
+          {clima.icon && (
+            <Image 
+              src={clima.icon} 
+              alt="Icono del clima" 
+              className={style.weatherIcon}
+              width={32}
+              height={32}
+              unoptimized
+            />
+          )}
           {Math.round(clima.tempC)}°C
         </span>
       ) : (
@@ -236,63 +264,49 @@ function WeatherWidget() {
 }
 
 function obtenerIconoPorCodigo(codigo: number): string {
-  // Aquí puedes usar imágenes propias o URLs externas
-  if ([0].includes(codigo)) return 'https://openweathermap.org/img/wn/01d.png'; // Soleado
-  if ([1, 2, 3].includes(codigo)) return 'https://openweathermap.org/img/wn/02d.png'; // Parcialmente nublado
-  if ([45, 48].includes(codigo)) return 'https://openweathermap.org/img/wn/50d.png'; // Neblina
-  if ([51, 53, 55, 56, 57].includes(codigo)) return 'https://openweathermap.org/img/wn/09d.png'; // Lluvia ligera
-  if ([61, 63, 65, 66, 67].includes(codigo)) return 'https://openweathermap.org/img/wn/10d.png'; // Lluvia moderada/fuerte
-  if ([71, 73, 75, 77].includes(codigo)) return 'https://openweathermap.org/img/wn/13d.png'; // Nieve
-  if ([80, 81, 82].includes(codigo)) return 'https://openweathermap.org/img/wn/11d.png'; // Tormenta
-  return 'https://openweathermap.org/img/wn/03d.png'; // Clima indefinido
+  if ([0].includes(codigo)) return 'https://openweathermap.org/img/wn/01d.png';
+  if ([1, 2, 3].includes(codigo)) return 'https://openweathermap.org/img/wn/02d.png';
+  if ([45, 48].includes(codigo)) return 'https://openweathermap.org/img/wn/50d.png';
+  if ([51, 53, 55, 56, 57].includes(codigo)) return 'https://openweathermap.org/img/wn/09d.png';
+  if ([61, 63, 65, 66, 67].includes(codigo)) return 'https://openweathermap.org/img/wn/10d.png';
+  if ([71, 73, 75, 77].includes(codigo)) return 'https://openweathermap.org/img/wn/13d.png';
+  if ([80, 81, 82].includes(codigo)) return 'https://openweathermap.org/img/wn/11d.png';
+  return 'https://openweathermap.org/img/wn/03d.png';
 }
 
 function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notificacion[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    const token = localStorage.getItem("cognitiva_token");
+    const eventSource = new EventSource(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/consejos-sse`);
 
-    const load = () => {
-      setLoading(true);
-      //Falta crear este endpoint
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones?tipo=consejos`, {
-        headers: { Authorization: `Bearer ${token ?? ""}` }
-      })
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data: Notificacion[]) => {
-          if (mounted) setItems(data);
-        })
-        .finally(() => {
-          if (mounted) setLoading(false);
-        });
+    eventSource.addEventListener("nuevo-consejo", (event: MessageEvent) => {
+      const data = JSON.parse(event.data);
+      const nuevaNotificacion: Notificacion = {
+        id: Date.now(),
+        titulo: data.titulo,
+        mensaje: data.descripcion,
+        fecha: new Date().toISOString(),
+        leida: false
+      };
+      setItems((prev) => [nuevaNotificacion, ...prev]);
+    });
+
+    eventSource.onerror = (err) => {
+      console.error("Error SSE:", err);
+      eventSource.close();
     };
 
-    load();
-    const t = setInterval(load, 60000);
     return () => {
-      mounted = false;
-      clearInterval(t);
+      eventSource.close();
     };
   }, []);
 
   const unread = useMemo(() => items.filter((n) => !n.leida).length, [items]);
 
-  const markAllAsRead = async () => {
-    const token = localStorage.getItem("cognitiva_token");
-    try {
-      //Falta crear este endpoint
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/notificaciones/marcar-leidas`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${token ?? ""}` }
-      });
-      setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
-    } catch (e) {
-      console.error(e);
-    }
+  const markAllAsRead = () => {
+    setItems((prev) => prev.map((n) => ({ ...n, leida: true })));
   };
 
   return (
@@ -301,7 +315,7 @@ function NotificationsBell() {
         className={style.bell}
         onClick={() => {
           setOpen((o) => !o);
-          if (!open && unread > 0) markAllAsRead().catch(() => {});
+          if (!open && unread > 0) markAllAsRead();
         }}
       >
         🔔
@@ -312,7 +326,6 @@ function NotificationsBell() {
         <div className={style.dropdown}>
           <div className={style.dropdownHeader}>
             <strong className={style.bellTitle}>Consejos</strong>
-            {loading && <span className={style.loadingDot}>•</span>}
           </div>
           {items.length === 0 ? (
             <div className={style.empty}>Sin notificaciones</div>

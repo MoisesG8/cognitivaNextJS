@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import styles from "./pares.module.css";
-import { actualizarPuntos } from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { actualizarPuntos, registrarResultado } from "@/lib/api";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type Card = {
   id: number;
@@ -15,7 +15,10 @@ type Card = {
 
 type Dificultad = "facil" | "dificil";
 
-export default function ParesPage() {
+function ParesGame() {
+  const searchParams = useSearchParams();
+  const idActividad = parseInt(searchParams.get("idActividad") || "0");
+  const [startTime, setStartTime] = useState<Date | null>(null);
   const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
   const [firstPick, setFirstPick] = useState<Card | null>(null);
@@ -28,6 +31,8 @@ export default function ParesPage() {
   const allLabels = ["🐶", "🐱", "🦊", "🐸", "🐵", "🦁", "🐰", "🐼", "🦄", "🐯", "🐨", "🐮"];
 
   const iniciarJuego = (nivel: Dificultad) => {
+    console.log("Iniciando juego con id:", idActividad);
+    setStartTime(new Date());
     const token = localStorage.getItem("cognitiva_token");
     if (!token) {
       router.replace("/login");
@@ -99,18 +104,36 @@ export default function ParesPage() {
         }, 1000);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstPick, secondPick]);
 
   const completed = cards.length > 0 && cards.every((c) => c.matched);
 
   useEffect(() => {
     if (completed && !pointsSent) {
-      const puntos = Math.max(10, 150 - moves * 3); // más difícil, menos puntos por muchos movimientos
+      const endTime = new Date();
+      let tiempoTotalSegundos = 0;
+      if (startTime) {
+        tiempoTotalSegundos = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+      }
+      const puntos = Math.max(10, 150 - moves * 3);
+      const payload = {
+        idActividad,
+        puntuacion: puntos,
+        tiempoTotal: tiempoTotalSegundos,
+        fechaRealizacion: new Date(),
+      };
+      registrarResultado(payload).then(() => {
+        console.log("Resultado registrado");
+      }).catch((e) => {
+        console.error("Error al registrar resultado:", e);
+      });
       actualizarPuntos(puntos)
         .then(() => console.log("Puntos actualizados"))
         .catch((e) => console.error(e))
         .finally(() => setPointsSent(true));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completed, pointsSent, moves]);
 
   const resetGame = () => {
@@ -156,5 +179,14 @@ export default function ParesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Componente principal con Suspense
+export default function ParesPage() {
+  return (
+    <Suspense fallback={<div className={styles.container}>Cargando juego...</div>}>
+      <ParesGame />
+    </Suspense>
   );
 }
