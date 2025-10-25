@@ -121,5 +121,19 @@ export const registrarPersonaArbol = async (persona: {
   return await res.json();
 };
 
+export const registrarCorreoAdicional = async (correo: string) => {
+  const userStr = localStorage.getItem("cognitiva_user");
+  if (!userStr) throw new Error("Usuario no encontrado");
+  const { id } = JSON.parse(userStr);
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/registrarCorreo`, {
+    method: "POST",
+    headers: {  "Content-Type": "application/json" },
+    body: JSON.stringify({ usuarioId: id, correo: correo }),
+  }); 
+  if (!res.ok) {
+    throw new Error("No se pudo registrar el correo adicional");
+  }
+  return await res.json();
+};
 
 

@@ -29,6 +29,8 @@ type Clima = {
   ciudad?: string;
 };
 
+
+
 export default function DashboardPage() {
   const router = useRouter();
   const [actividades, setActividades] = useState<Actividad[]>([]);
@@ -178,6 +180,7 @@ export default function DashboardPage() {
 }
 
 function TopBar({ nombre, onLogout }: { nombre: string; onLogout: () => void }) {
+  const router = useRouter();
   return (
     <header className={style.topbar}>
       <div className={style.topbarLeft}>
@@ -188,6 +191,7 @@ function TopBar({ nombre, onLogout }: { nombre: string; onLogout: () => void }) 
         <WeatherWidget />
         <NotificationsBell />
         <button className={style.logoutButton} onClick={onLogout}>Cerrar sesión</button>
+        <button className={style.addEmailButton} onClick={() => router.push('/registrar-correos')}>Agregar Correo</button>
       </div>
     </header>
   );

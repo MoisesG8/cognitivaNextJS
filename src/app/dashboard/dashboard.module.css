@@ -19,6 +19,20 @@
   color: white;
 }
 
+.addEmailButton {
+  background: #22c55e;
+  border: 1px solid #44e53e;
+  color: #f7f7f7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.addEmailButton:hover {
+  background: #44e53e;
+  color: white;
+}
+
 .dashboardpage {
   background-image: url('https://cdn.pixabay.com/photo/2018/03/13/22/53/puzzle-3223941_1280.jpg');
   background-size: cover;
